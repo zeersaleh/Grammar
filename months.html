@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Months Flashcards Game - Space Adventure!</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for Space Theme */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Deep space gradient background */
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #4a5568 100%);
+            background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.1) 1px, transparent 0); /* Subtle stars */
+            background-size: 20px 20px; /* Star density */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* Hide overflow for animation */
+            position: relative; /* Needed for absolute positioning */
+            perspective: 1000px; /* Add perspective for 3D effect */
+        }
+        .game-wrapper {
+             position: relative; /* Container for rocket */
+             width: 90%;
+             max-width: 550px; /* Slightly wider */
+        }
+        .game-container {
+            background-color: rgba(45, 55, 72, 0.85); /* Semi-transparent dark slate */
+            backdrop-filter: blur(10px); /* Frosted glass effect */
+            border: 1px solid rgba(255, 255, 255, 0.2); /* Subtle border */
+            padding: 2rem 3rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 15px rgba(76, 175, 80, 0.3); /* Deeper shadow + subtle green glow */
+            text-align: center;
+            position: relative; /* Needed for feedback emojis */
+            z-index: 10;
+            transform-style: preserve-3d; /* Enable 3D transforms for children */
+            transition: transform 0.5s ease;
+        }
+        /* Slight tilt effect on the container */
+        /* .game-container:hover {
+            transform: rotateY(5deg) rotateX(2deg);
+        } */
+        .card {
+            background: linear-gradient(145deg, #4a5568, #2d3748); /* Dark gradient for card */
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 5px 15px rgba(0, 0, 0, 0.3); /* Inner + outer shadow */
+            transform: translateZ(20px); /* Lift the card slightly in 3D space */
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+             transform: translateZ(30px) translateY(-5px); /* Lift more on hover */
+        }
+        .card svg {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 0 5px currentColor); /* Add glow to SVG */
+        }
+        .month-name {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #e2e8f0; /* Light gray text */
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); /* Text shadow for depth */
+            margin-bottom: 0.5rem;
+        }
+        .options button {
+            display: block;
+            width: 100%;
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 0.75rem;
+            background: linear-gradient(145deg, #718096, #4a5568); /* Gray gradient */
+            color: #f7fafc; /* Very light text */
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
+        }
+        .options button:hover {
+            background: linear-gradient(145deg, #a0aec0, #718096); /* Lighter gradient on hover */
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px); /* Lift button on hover */
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4);
+        }
+        .options button:active {
+            transform: translateY(0px) scale(0.98); /* Click effect */
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+        }
+        .timer-score {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #cbd5e1; /* Lighter gray */
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        }
+        .feedback-emoji {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 5rem;
+            opacity: 0;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease;
+            z-index: 20; /* Above card */
+            text-shadow: 0 0 10px black; /* Make emoji pop */
+        }
+        .feedback-emoji.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+        .final-screen {
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #e2e8f0; /* Light text */
+        }
+        .floating-element {
+            position: absolute;
+            bottom: -100px; /* Start below screen */
+            font-size: 2.5rem; /* Slightly larger emojis */
+            animation: floatUp 12s infinite linear;
+            z-index: 5; /* Behind game container */
+            opacity: 0.8;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5); /* Add glow */
+        }
+        @keyframes floatUp {
+            0% {
+                bottom: -100px;
+                opacity: 0.8;
+                transform: rotate(0deg);
+            }
+            50% {
+                 transform: rotate(15deg); /* Slight rotation */
+            }
+            90% {
+                opacity: 0.8;
+            }
+            100% {
+                bottom: 110vh; /* Float up past the top */
+                opacity: 0;
+                transform: rotate(-15deg);
+            }
+        }
+        .start-button, .play-again-button {
+            padding: 0.9rem 2.2rem; /* Slightly larger */
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 50px; /* Pill shape */
+            cursor: pointer;
+            transition: all 0.3s ease;
+            /* Futuristic blue gradient */
+            background: linear-gradient(145deg, #4299e1, #3182ce);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3), inset 0 -2px 5px rgba(0, 0, 0, 0.2);
+            margin-top: 1rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        .start-button:hover, .play-again-button:hover {
+            background: linear-gradient(145deg, #63b3ed, #4299e1); /* Lighter blue */
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.5), inset 0 -2px 5px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
+        }
+        .start-button:active, .play-again-button:active {
+            transform: translateY(0px) scale(0.97);
+            box-shadow: 0 3px 10px rgba(59, 130, 246, 0.3), inset 0 -1px 3px rgba(0, 0, 0, 0.2);
+        }
+        .instructions {
+            font-size: 0.9rem;
+            color: #a0aec0; /* Lighter gray */
+            margin-bottom: 1.5rem;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
+        }
+        .link-container {
+            margin-top: 2rem;
+            font-size: 0.9rem;
+        }
+        .link-container a {
+            color: #63b3ed; /* Light blue link */
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .link-container a:hover {
+            color: #90cdf4; /* Lighter blue on hover */
+            text-decoration: underline;
+        }
+        h1 {
+            color: #f7fafc; /* White title */
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+        h2 {
+             color: #e2e8f0; /* Light gray */
+             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+        }
+
+        /* SVG Colors - Adjusted for contrast on dark background */
+        .svg-jan { color: #a5f3fc; } /* Light cyan */
+        .svg-feb { color: #f472b6; } /* Pink */
+        .svg-mar { color: #86efac; } /* Light green */
+        .svg-apr { color: #93c5fd; } /* Light blue */
+        .svg-may { color: #fcd34d; } /* Amber */
+        .svg-jun { color: #fbbf24; } /* Yellow */
+        .svg-jul { color: #f87171; } /* Red */
+        .svg-aug { color: #fdba74; } /* Orange */
+        .svg-sep { color: #d97706; } /* Darker Amber */
+        .svg-oct { color: #f97316; } /* Orange */
+        .svg-nov { color: #ca8a04; } /* Yellow-Brown */
+        .svg-dec { color: #34d399; } /* Emerald */
+
+        /* Decorative Rocket */
+        .space-rocket {
+            position: absolute;
+            bottom: 10px;
+            left: -80px; /* Position outside the container */
+            width: 80px; /* Adjust size */
+            height: auto;
+            z-index: 1; /* Behind game container */
+            transform: rotate(-25deg);
+            opacity: 0.8;
+            filter: drop-shadow(5px 5px 10px rgba(0,0,0,0.5));
+            animation: rocketWobble 5s infinite ease-in-out;
+        }
+
+        @keyframes rocketWobble {
+            0%, 100% { transform: rotate(-25deg) translateY(0px); }
+            50% { transform: rotate(-22deg) translateY(-10px); }
+        }
+
+        /* Responsive adjustments */
+         @media (max-width: 600px) {
+            .game-container {
+                padding: 1.5rem 1rem;
+            }
+            .space-rocket {
+                width: 60px;
+                left: -40px;
+                bottom: 5px;
+            }
+             h1 { font-size: 1.75rem; } /* Smaller title on mobile */
+             .month-name { font-size: 1.5rem; }
+             .options button { font-size: 0.9rem; padding: 0.7rem 0.8rem;}
+             .timer-score { font-size: 1rem; }
+        }
+
+    </style>
+</head>
+<body>
+    <div id="animation-container"></div>
+
+    <div class="game-wrapper">
+        <svg class="space-rocket" viewBox="0 0 200 400" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#e2e8f0;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#94a3b8;stop-opacity:1" />
+                </linearGradient>
+                 <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#f87171;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+                </linearGradient>
+                 <linearGradient id="grad3" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#fbbf24; stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#f97316; stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <path d="M100 0 L150 150 L130 350 L70 350 L50 150 Z" fill="url(#grad1)"/>
+            <polygon points="50,150 20,300 70,350" fill="url(#grad2)" />
+            <polygon points="150,150 180,300 130,350" fill="url(#grad2)" />
+            <circle cx="100" cy="100" r="30" fill="#4299e1" stroke="#1a202c" stroke-width="5"/>
+             <path d="M70 350 Q 80 370 100 400 Q 120 370 130 350 Q 115 360 100 380 Q 85 360 70 350 Z" fill="url(#grad3)"/>
+        </svg>
+
+        <div id="game-container" class="game-container">
+            <h1 class="text-3xl font-bold mb-4">Months: Space Adventure!</h1>
+            <p id="instructions" class="instructions">Match the English month to its Turkish name!</p>
+
+            <div id="start-screen">
+                <button id="start-button" class="start-button">Launch Mission!</button>
+            </div>
+
+            <div id="game-screen" class="hidden">
+                <div class="timer-score">
+                    <div id="timer">Time: 120s</div>
+                    <div id="score">Score: 0</div>
+                </div>
+
+                <div id="card" class="card">
+                    <div id="card-svg"></div>
+                    <div id="card-month" class="month-name">Month</div>
+                </div>
+
+                <div id="options" class="options">
+                    </div>
+            </div>
+
+            <div id="final-screen" class="final-screen">
+                <h2 id="final-title" class="text-2xl font-bold mb-3">Mission Over!</h2>
+                <p id="final-score" class="text-xl mb-4">Your final score: 0</p>
+                <p id="final-message" class="mb-5"></p>
+                <button id="play-again-button" class="play-again-button">New Mission</button>
+            </div>
+
+            <div id="feedback-emoji" class="feedback-emoji"></div>
+
+            <div class="link-container">
+                <a href="https://www.instagram.com/saleh__zeer/" target="_blank" rel="noopener noreferrer" title="Follow ABC Academy on Instagram">
+                    ABC Academy Control Center
+                </a>
+            </div>
+        </div>
+    </div> <script>
+        // --- DOM Elements ---
+        const gameContainer = document.getElementById('game-container');
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const finalScreen = document.getElementById('final-screen');
+        const startButton = document.getElementById('start-button');
+        const playAgainButton = document.getElementById('play-again-button');
+        const cardElement = document.getElementById('card');
+        const cardSvgElement = document.getElementById('card-svg');
+        const cardMonthElement = document.getElementById('card-month');
+        const optionsContainer = document.getElementById('options');
+        const timerElement = document.getElementById('timer');
+        const scoreElement = document.getElementById('score');
+        const finalTitleElement = document.getElementById('final-title');
+        const finalScoreElement = document.getElementById('final-score');
+        const finalMessageElement = document.getElementById('final-message');
+        const feedbackEmojiElement = document.getElementById('feedback-emoji');
+        const animationContainer = document.getElementById('animation-container');
+        const instructionsElement = document.getElementById('instructions');
+
+        // --- Game Data (SVGs remain the same, colors adjusted in CSS) ---
+        const monthsData = [
+             { english: "January", turkish: "Ocak", svg: `<svg class="svg-jan" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.34 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527c.43-.307.99-.25 1.363.138l.775.775c.388.388.44 1.002.138 1.362l-.527.737c-.25.35-.272.806-.108 1.204.166.397.506.71.93.78l.893.15c.543.09.94.56.94 1.11v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.424.07-.764.383-.93.78-.164.398-.142.854.108 1.204l.527.738c.306.43.25.99-.138 1.362l-.775.775c-.388.388-1.002.44-1.362.138l-.737-.527c-.35-.25-.806-.272-1.204-.108-.397.166-.71.506-.78.93l-.15.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.02-.398-1.11-.94l-.149-.894c-.07-.424-.384-.764-.78-.93-.398-.164-.855-.142-1.205.108l-.737.527c-.43.307-.99.25-1.363-.138l-.775-.775c-.388-.388-.44-1.002-.138-1.362l.527-.737c.25-.35.272-.806.108-1.204-.166-.397-.506-.71-.93-.78l-.893-.15c-.543-.09-.94-.56-.94-1.11v-1.094c0-.55.397-1.02.94-1.11l.893-.149c.424-.07.764-.383.93-.78.164-.398.142-.854-.108-1.204l-.527-.738c-.306-.43-.25-.99.138-1.362l.775-.775c.388-.388 1.002-.44 1.362-.138l.737.527c.35.25.806.272 1.204.108.397-.166.71-.506.78-.93l.15-.894z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 8.25a3.75 3.75 0 100 7.5 3.75 3.75 0 000-7.5z" /></svg>` }, // Snowflake
+            { english: "February", turkish: "Şubat", svg: `<svg class="svg-feb" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke="none"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>` }, // Heart
+            { english: "March", turkish: "Mart", svg: `<svg class="svg-mar" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" /></svg>` }, // Wind
+            { english: "April", turkish: "Nisan", svg: `<svg class="svg-apr" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591M12 6.375a3.375 3.375 0 0 0-3.375 3.375h6.75A3.375 3.375 0 0 0 12 6.375z" /><path stroke-linecap="round" stroke-linejoin="round" d="M9 15.75a3 3 0 0 0 3 3 3 3 0 0 0 3-3m-6 0h6" /></svg>` }, // Rainbow/Sun (simplified)
+            { english: "May", turkish: "Mayıs", svg: `<svg class="svg-may" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591" /></svg>` }, // Sunny Sky
+            { english: "June", turkish: "Haziran", svg: `<svg class="svg-jun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591" /></svg>` }, // Bright Sunshine
+            { english: "July", turkish: "Temmuz", svg: `<svg class="svg-jul" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.867 8.21 8.21 0 0 0 3 2.48Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 3.75 3.75 0 0 0-1.993-1.993A3.75 3.75 0 0 0 12 18Z" /></svg>` }, // Ice Cream Cone (simplified fire for hot)
+            { english: "August", turkish: "Ağustos", svg: `<svg class="svg-aug" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-6.364-.386 1.591-1.591M3 12h2.25m.386-6.364 1.591 1.591" /></svg>` }, // Still Sunny
+            { english: "September", turkish: "Eylül", svg: `<svg class="svg-sep" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.182 15.182a4.5 4.5 0 0 1-6.364 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM9.75 9.75c0 .414-.168.79-.44 1.06-.272.272-.646.44-1.06.44h-.008c-.414 0-.79-.168-1.06-.44-.272-.272-.44-.646-.44-1.06v-.008c0-.414.168-.79.44-1.06.272-.272.646-.44 1.06-.44h.008c.414 0 .79.168 1.06.44.272.272.44.646.44 1.06v.008ZM12 12.75a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm4.5-3c0 .414-.168.79-.44 1.06-.272.272-.646.44-1.06.44h-.008c-.414 0-.79-.168-1.06-.44-.272-.272-.44-.646-.44-1.06v-.008c0-.414.168-.79.44-1.06.272-.272.646-.44 1.06-.44h.008c.414 0 .79.168 1.06.44.272.272.44.646.44 1.06v.008Z" /></svg>` }, // Falling Leaves (simplified)
+            { english: "October", turkish: "Ekim", svg: `<svg class="svg-oct" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z" /></svg>` }, // Pumpkin (simplified)
+            { english: "November", turkish: "Kasım", svg: `<svg class="svg-nov" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 15.75l-2.489-2.489m0 0a3.375 3.375 0 1 0-4.773-4.773 3.375 3.375 0 0 0 4.774 4.774ZM21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>` }, // Turkey/Food (simplified)
+            { english: "December", turkish: "Aralık", svg: `<svg class="svg-dec" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 0 1 1.04 0l2.125 5.111a.563.563 0 0 0 .475.31h5.518a.562.562 0 0 1 .329 1.004l-4.04 2.927a.562.562 0 0 0-.182.658l1.54 4.996a.562.562 0 0 1-.812.622l-4.373-3.188a.563.563 0 0 0-.653 0l-4.374 3.188a.562.562 0 0 1-.811-.622l1.54-4.996a.563.563 0 0 0-.182-.658l-4.04-2.927a.562.562 0 0 1 .329-1.004h5.518a.563.563 0 0 0 .475-.31L11.48 3.5Z" /></svg>` }, // Christmas Tree/Star
+        ];
+
+        // --- Game State ---
+        let currentMonthIndex = 0;
+        let score = 0;
+        let timerInterval = null;
+        let timeLeft = 120; // 2 minutes
+        let shuffledMonths = [];
+        let correctAnswersCount = 0;
+        let toneStarted = false;
+
+        // --- Sound Effects (Tone.js) ---
+        let correctSound, incorrectSound;
+
+        async function startAudio() {
+            if (!toneStarted) {
+                try {
+                    await Tone.start();
+                    console.log('AudioContext started');
+                    correctSound = new Tone.Synth({
+                        oscillator: { type: 'sine' }, // Softer sound
+                        envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.2 }
+                    }).toDestination();
+                    incorrectSound = new Tone.Synth({
+                        oscillator: { type: 'sawtooth' }, // Harsher sound
+                        envelope: { attack: 0.01, decay: 0.3, sustain: 0, release: 0.1 }
+                    }).toDestination();
+                    toneStarted = true;
+                } catch (e) {
+                    console.error("Error starting Tone.js", e);
+                    // Handle cases where AudioContext might be blocked or fail
+                    toneStarted = false; // Ensure it remains false if failed
+                }
+            }
+        }
+
+        // --- Utility Functions ---
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function getRandomOptions(correctAnswer, count = 3) {
+            const options = [correctAnswer];
+            const allTurkishMonths = monthsData.map(m => m.turkish);
+            while (options.length < count) {
+                const randomMonth = allTurkishMonths[Math.floor(Math.random() * allTurkishMonths.length)];
+                if (!options.includes(randomMonth)) {
+                    options.push(randomMonth);
+                }
+            }
+            return shuffleArray(options);
+        }
+
+        // --- Game Flow Functions ---
+        function startGame() {
+            startAudio(); // Attempt to start audio on game start
+            startScreen.classList.add('hidden');
+            finalScreen.style.display = 'none';
+            animationContainer.innerHTML = '';
+            gameScreen.classList.remove('hidden');
+            instructionsElement.classList.add('hidden');
+
+            shuffledMonths = shuffleArray([...monthsData]);
+            currentMonthIndex = 0;
+            score = 0;
+            correctAnswersCount = 0;
+            timeLeft = 120;
+            updateScoreDisplay();
+            updateTimerDisplay();
+            loadMonthCard();
+            startTimer();
+        }
+
+        function loadMonthCard() {
+            if (currentMonthIndex >= shuffledMonths.length) {
+                endGame(true);
+                return;
+            }
+
+            const currentMonth = shuffledMonths[currentMonthIndex];
+            cardSvgElement.innerHTML = currentMonth.svg;
+            cardMonthElement.textContent = currentMonth.english;
+
+            const options = getRandomOptions(currentMonth.turkish, 4);
+            optionsContainer.innerHTML = '';
+
+            options.forEach(option => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.onclick = () => handleAnswer(option === currentMonth.turkish);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function handleAnswer(isCorrect) {
+             // Play sound effects only if Tone has started
+            if (toneStarted && correctSound && incorrectSound) {
+                if (isCorrect) {
+                    correctSound.triggerAttackRelease('E5', '8n', Tone.now()); // Higher pitch for correct
+                    score++;
+                    correctAnswersCount++;
+                    showFeedback('✨'); // Space-themed positive feedback
+                } else {
+                    incorrectSound.triggerAttackRelease('A2', '8n', Tone.now()); // Low pitch for incorrect
+                    showFeedback('👾'); // Alien/monster for incorrect
+                }
+            } else {
+                 // Fallback visual feedback if audio not ready
+                 showFeedback(isCorrect ? '✨' : '👾');
+                 if(isCorrect) {
+                    score++;
+                    correctAnswersCount++;
+                 }
+            }
+
+            updateScoreDisplay();
+
+            setTimeout(() => {
+                currentMonthIndex++;
+                loadMonthCard();
+            }, 800);
+        }
+
+        function showFeedback(emoji) {
+            feedbackEmojiElement.textContent = emoji;
+            feedbackEmojiElement.classList.add('show');
+            setTimeout(() => {
+                feedbackEmojiElement.classList.remove('show');
+            }, 600);
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    endGame(false);
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        function updateTimerDisplay() {
+            timerElement.textContent = `Time: ${timeLeft}s`;
+        }
+
+        function updateScoreDisplay() {
+            scoreElement.textContent = `Score: ${score}`;
+        }
+
+        function endGame(finished) {
+            stopTimer();
+            gameScreen.classList.add('hidden');
+            finalScreen.style.display = 'flex';
+            instructionsElement.classList.remove('hidden');
+
+            finalScoreElement.textContent = `Final Score: ${score} / ${monthsData.length}`;
+
+            if (!finished && timeLeft <= 0) {
+                finalTitleElement.textContent = "Mission Aborted!";
+                finalMessageElement.textContent = "Fuel ran out! Try again, cadet!";
+            } else if (finished && correctAnswersCount === monthsData.length) {
+                finalTitleElement.textContent = "Mission Accomplished!";
+                finalMessageElement.textContent = "Excellent work, Commander! You know all the months!";
+                triggerCompletionAnimation();
+            } else if (finished) {
+                 finalTitleElement.textContent = "Good Flight!";
+                 finalMessageElement.textContent = `You completed the mission. Keep exploring the galaxy of knowledge!`;
+            } else {
+                 finalTitleElement.textContent = "Mission Over!";
+                 finalMessageElement.textContent = "Keep practicing, space explorer!";
+            }
+        }
+
+        function triggerCompletionAnimation() {
+            // Space-themed emojis for animation
+            const elements = ['🚀', '✨', '🪐', '⭐', '💫', '☄️'];
+            for (let i = 0; i < 25; i++) { // More elements for a bigger effect
+                const element = document.createElement('div');
+                element.classList.add('floating-element');
+                element.textContent = elements[Math.floor(Math.random() * elements.length)];
+                element.style.left = `${Math.random() * 100}vw`;
+                element.style.fontSize = `${Math.random() * 1.5 + 1.5}rem`; // Random size (1.5rem to 3rem)
+                element.style.animationDuration = `${Math.random() * 7 + 8}s`; // Random duration (8-15s)
+                element.style.animationDelay = `${Math.random() * 6}s`; // Random delay (0-6s)
+                animationContainer.appendChild(element);
+            }
+        }
+
+        // --- Event Listeners ---
+        startButton.addEventListener('click', startGame);
+        playAgainButton.addEventListener('click', startGame);
+
+        // Initial setup
+        gameScreen.classList.add('hidden');
+        finalScreen.style.display = 'none';
+        startScreen.classList.remove('hidden');
+
+    </script>
+</body>
+</html>
