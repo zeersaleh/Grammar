@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Possessive 's' Game</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom, #a8edea 0%, #fed6e3 100%); /* Soft gradient background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scroll during animation */
+            position: relative; /* For absolute positioning of canvas */
+        }
+
+        .game-container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 95%;
+            position: relative;
+            z-index: 10; /* Ensure game content is above canvas */
+        }
+
+        h1 {
+            color: #333;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        .score-timer {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1em;
+        }
+
+        .score, .timer {
+            padding: 10px 20px;
+            border-radius: 10px;
+            background-color: #f0f0f0;
+            color: #555;
+        }
+
+        .question-area {
+            margin-bottom: 20px;
+            min-height: 80px; /* Ensure space for question */
+        }
+
+        .question {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #444;
+        }
+
+        .input-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            font-size: 1.1em;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: #a8edea;
+        }
+
+        .feedback {
+            margin-top: 20px;
+            font-size: 1.5em;
+            min-height: 30px; /* Ensure space for feedback */
+        }
+
+        .correct {
+            color: green;
+        }
+
+        .incorrect {
+            color: red;
+        }
+
+        .controls {
+            margin-top: 30px;
+        }
+
+        button {
+            font-family: 'Press Start 2P', cursive;
+            padding: 12px 25px;
+            margin: 5px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #startButton {
+            background-color: #84fab0;
+            color: #333;
+        }
+
+        #startButton:hover {
+            background-color: #67d99b;
+        }
+
+        #nextButton {
+            background-color: #a1c4fd;
+            color: #333;
+            display: none; /* Hidden initially */
+        }
+
+        #nextButton:hover {
+            background-color: #7ea9f7;
+        }
+
+        #checkButton {
+             background-color: #fbc2eb;
+            color: #333;
+        }
+
+        #checkButton:hover {
+             background-color: #f9a3dc;
+        }
+
+        .instagram-link {
+            margin-top: 30px;
+            font-size: 0.9em;
+        }
+
+        .instagram-link a {
+            color: #e1306c; /* Instagram color */
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .instagram-link a:hover {
+            text-decoration: underline;
+        }
+
+        #animationCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5; /* Below game content */
+            pointer-events: none; /* Allow clicks to pass through */
+            display: none; /* Hidden initially */
+        }
+
+        /* Modal for End Game */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 20; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #finalScore {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        #playAgainButton {
+             background-color: #a1c4fd;
+            color: #333;
+        }
+         #playAgainButton:hover {
+            background-color: #7ea9f7;
+        }
+
+
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>Possessive 's' Game</h1>
+
+        <div class="score-timer">
+            <div class="score">Score: <span id="scoreValue">0</span></div>
+            <div class="timer">Time: <span id="timerValue">60</span>s</div>
+        </div>
+
+        <div class="question-area">
+            <div class="question" id="questionText">Click Start to begin!</div>
+            <div class="input-area">
+                It is the <input type="text" id="answerInput" disabled> <span id="possessiveWord"></span>.
+            </div>
+        </div>
+
+        <div class="feedback" id="feedbackArea"></div>
+
+        <div class="controls">
+            <button id="startButton">Start Game</button>
+            <button id="checkButton" style="display: none;">Check Answer</button>
+            <button id="nextButton">Next Question</button>
+        </div>
+
+        <div class="instagram-link">
+            Follow us: <a href="https://www.instagram.com/saleh__zeer/" target="_blank">ABC Academy</a>
+        </div>
+    </div>
+
+    <canvas id="animationCanvas"></canvas>
+
+    <div id="endGameModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Game Over!</h2>
+            <div id="finalScore"></div>
+            <button id="playAgainButton">Play Again</button>
+        </div>
+    </div>
+
+
+    <script>
+        // Game Data (Questions and Answers)
+        const questions = [
+            { sentence: "The boys have got a dog.", possessivePart: "dog", answer: "boys'" },
+            { sentence: "The girls have got a house.", possessivePart: "house", answer: "girls'" },
+            { sentence: "The children have got homework.", possessivePart: "homework", answer: "children's" },
+            { sentence: "The cats have got water.", possessivePart: "water", answer: "cats'" },
+            { sentence: "The men have got cars.", possessivePart: "cars", answer: "men's" },
+            { sentence: "The women have got bags.", possessivePart: "bags", answer: "women's" }
+        ];
+
+        // Game Variables
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timer;
+        let timeLeft = 60; // seconds
+        let gameActive = false;
+
+        // DOM Elements
+        const questionText = document.getElementById('questionText');
+        const answerInput = document.getElementById('answerInput');
+        const possessiveWordSpan = document.getElementById('possessiveWord');
+        const feedbackArea = document.getElementById('feedbackArea');
+        const scoreValue = document.getElementById('scoreValue');
+        const timerValue = document.getElementById('timerValue');
+        const startButton = document.getElementById('startButton');
+        const checkButton = document.getElementById('checkButton');
+        const nextButton = document.getElementById('nextButton');
+        const animationCanvas = document.getElementById('animationCanvas');
+        const endGameModal = document.getElementById('endGameModal');
+        const finalScoreDiv = document.getElementById('finalScore');
+        const playAgainButton = document.getElementById('playAgainButton');
+        const closeModalButton = document.querySelector('.close-button');
+
+        // Sound Effects (using Tone.js)
+        const correctSound = new Tone.Oscillator(440, "sine").toDestination(); // A4 note
+        const incorrectSound = new Tone.Noise("pink").toDestination(); // Pink noise for incorrect
+
+        // Animation Variables
+        const ctx = animationCanvas.getContext('2d');
+        let animationActive = false;
+        let floatingObjects = []; // Array to hold rocks and balloons
+
+        // --- Game Functions ---
+
+        // Start the game
+        function startGame() {
+            gameActive = true;
+            score = 0;
+            currentQuestionIndex = 0;
+            timeLeft = 60;
+            scoreValue.textContent = score;
+            timerValue.textContent = timeLeft;
+            feedbackArea.textContent = '';
+            answerInput.value = '';
+            answerInput.disabled = false;
+            startButton.style.display = 'none';
+            checkButton.style.display = 'inline-block';
+            nextButton.style.display = 'none'; // Hide next initially
+            endGameModal.style.display = 'none'; // Hide modal
+            animationCanvas.style.display = 'none'; // Hide animation canvas
+
+            displayQuestion();
+            startTimer();
+        }
+
+        // Display the current question
+        function displayQuestion() {
+            if (currentQuestionIndex < questions.length) {
+                const currentQ = questions[currentQuestionIndex];
+                questionText.textContent = currentQ.sentence;
+                possessiveWordSpan.textContent = currentQ.possessivePart + "."; // Add the word after the blank
+                answerInput.value = ''; // Clear input for new question
+                answerInput.disabled = false; // Enable input
+                feedbackArea.textContent = ''; // Clear feedback
+                checkButton.style.display = 'inline-block'; // Show check button
+                nextButton.style.display = 'none'; // Hide next button
+            } else {
+                endGame(); // All questions answered
+            }
+        }
+
+        // Start the timer
+        function startTimer() {
+            timer = setInterval(() => {
+                timeLeft--;
+                timerValue.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        // Check the user's answer
+        function checkAnswer() {
+            if (!gameActive) return;
+
+            const userAnswer = answerInput.value.trim().toLowerCase();
+            const correctAnswer = questions[currentQuestionIndex].answer.toLowerCase();
+
+            answerInput.disabled = true; // Disable input after checking
+            checkButton.style.display = 'none'; // Hide check button
+
+            if (userAnswer === correctAnswer) {
+                score++;
+                scoreValue.textContent = score;
+                feedbackArea.innerHTML = '<span class="correct">&#128077; Correct!</span>'; // Thumbs up emoji
+                correctSound.start();
+                correctSound.stop("+0.1"); // Play for a short duration
+            } else {
+                feedbackArea.innerHTML = `<span class="incorrect">&#128078; Incorrect. The correct answer is "${questions[currentQuestionIndex].answer}".</span>`; // Thumbs down emoji
+                incorrectSound.start();
+                incorrectSound.stop("+0.3"); // Play for a short duration
+            }
+
+            nextButton.style.display = 'inline-block'; // Show next button
+        }
+
+        // Move to the next question
+        function nextQuestion() {
+             if (!gameActive) return;
+            currentQuestionIndex++;
+            displayQuestion();
+        }
+
+        // End the game
+        function endGame() {
+            gameActive = false;
+            clearInterval(timer);
+            answerInput.disabled = true;
+            startButton.style.display = 'inline-block'; // Show start button again
+            checkButton.style.display = 'none';
+            nextButton.style.display = 'none';
+
+            finalScoreDiv.textContent = `Your final score is: ${score} out of ${questions.length}`;
+            endGameModal.style.display = 'flex'; // Show modal
+
+            // Trigger animation if all questions were answered correctly
+            if (score === questions.length) {
+                startAnimation();
+            }
+        }
+
+        // --- Animation Functions ---
+
+        // Initialize animation objects
+        function createFloatingObjects() {
+            floatingObjects = [];
+            const numObjects = 30; // Number of rocks and balloons
+            const colors = ['#ff9a9e', '#fad0c4', '#a1c4fd', '#c2e9fb', '#84fab0', '#8fd3f4']; // Pastel colors
+
+            for (let i = 0; i < numObjects; i++) {
+                const type = Math.random() < 0.6 ? 'balloon' : 'rock'; // More balloons than rocks
+                const size = type === 'balloon' ? Math.random() * 15 + 10 : Math.random() * 20 + 15; // Different sizes
+                const x = Math.random() * animationCanvas.width;
+                const y = animationCanvas.height + size; // Start below the canvas
+                const speed = Math.random() * 1 + 0.5; // Floating speed
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const wobble = Math.random() * 0.1 - 0.05; // Slight horizontal movement
+
+                floatingObjects.push({ type, x, y, size, speed, color, wobble, angle: Math.random() * Math.PI * 2 });
+            }
+        }
+
+        // Draw floating objects
+        function drawFloatingObjects() {
+            ctx.clearRect(0, 0, animationCanvas.width, animationCanvas.height); // Clear canvas
+
+            floatingObjects.forEach(obj => {
+                ctx.fillStyle = obj.color;
+                ctx.beginPath();
+                if (obj.type === 'balloon') {
+                    // Draw balloon shape (simple circle for now)
+                    ctx.arc(obj.x, obj.y, obj.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Draw string
+                    ctx.strokeStyle = '#555';
+                    ctx.lineWidth = 1;
+                    ctx.moveTo(obj.x, obj.y + obj.size);
+                    ctx.lineTo(obj.x, obj.y + obj.size + 15); // String length
+                    ctx.stroke();
+
+                } else {
+                    // Draw rock shape (simple irregular shape)
+                    ctx.save();
+                    ctx.translate(obj.x, obj.y);
+                    ctx.rotate(obj.angle);
+                    ctx.beginPath();
+                    // Simple irregular shape points
+                    ctx.moveTo(0, -obj.size);
+                    ctx.lineTo(obj.size * 0.8, -obj.size * 0.5);
+                    ctx.lineTo(obj.size, obj.size * 0.2);
+                    ctx.lineTo(obj.size * 0.5, obj.size);
+                    ctx.lineTo(-obj.size * 0.2, obj.size * 0.8);
+                    ctx.lineTo(-obj.size, obj.size * 0.1);
+                    ctx.lineTo(-obj.size * 0.7, -obj.size * 0.6);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            });
+        }
+
+        // Update floating objects position
+        function updateFloatingObjects() {
+            floatingObjects.forEach(obj => {
+                obj.y -= obj.speed;
+                obj.x += Math.sin(obj.y * obj.wobble) * 0.5; // Add wobble effect
+                obj.angle += obj.type === 'rock' ? 0.01 : 0; // Rotate rocks
+
+                // Reset object if it goes off screen
+                if (obj.y < -obj.size - 20) {
+                    obj.y = animationCanvas.height + obj.size;
+                    obj.x = Math.random() * animationCanvas.width;
+                }
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            if (animationActive) {
+                updateFloatingObjects();
+                drawFloatingObjects();
+                requestAnimationFrame(animate);
+            }
+        }
+
+        // Start the animation
+        function startAnimation() {
+            animationCanvas.style.display = 'block';
+            animationCanvas.width = window.innerWidth;
+            animationCanvas.height = window.innerHeight;
+            createFloatingObjects();
+            animationActive = true;
+            animate();
+        }
+
+        // Stop the animation
+        function stopAnimation() {
+            animationActive = false;
+            animationCanvas.style.display = 'none';
+        }
+
+
+        // --- Event Listeners ---
+
+        startButton.addEventListener('click', startGame);
+        checkButton.addEventListener('click', checkAnswer);
+        nextButton.addEventListener('click', nextQuestion);
+        playAgainButton.addEventListener('click', startGame); // Play again button in modal
+        closeModalButton.addEventListener('click', () => {
+            endGameModal.style.display = 'none';
+            stopAnimation(); // Stop animation when modal is closed manually
+        });
+
+        // Allow pressing Enter key to check answer
+        answerInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && !answerInput.disabled) {
+                event.preventDefault(); // Prevent default form submission
+                checkAnswer();
+            }
+        });
+
+        // Handle window resize for canvas
+        window.addEventListener('resize', () => {
+            if (animationActive) {
+                animationCanvas.width = window.innerWidth;
+                animationCanvas.height = window.innerHeight;
+                // Re-create objects or adjust positions if needed on resize
+                // For simplicity, we'll just resize the canvas here.
+            }
+        });
+
+        // Ensure animation starts after window loads if triggered
+        window.onload = function() {
+             // Any initial setup on load can go here
+        };
+
+
+    </script>
+
+</body>
+</html>
