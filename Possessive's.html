@@ -70,6 +70,8 @@
             justify-content: center;
             align-items: center;
             gap: 10px;
+            /* Allow wrapping if needed, though unlikely with current structure */
+            flex-wrap: wrap;
         }
 
         input[type="text"] {
@@ -80,6 +82,11 @@
             text-align: center;
             outline: none;
             transition: border-color 0.3s ease;
+            /* Make input flexible for mobile */
+            flex-grow: 1; /* Allow it to grow */
+            max-width: 200px; /* Prevent it from getting too wide on large screens */
+            min-width: 80px; /* Ensure it doesn't get too small */
+            width: auto; /* Let flexbox manage width */
         }
 
         input[type="text"]:focus {
@@ -225,6 +232,24 @@
         }
          #playAgainButton:hover {
             background-color: #7ea9f7;
+        }
+
+        /* Media query for smaller screens to adjust input size */
+        @media (max-width: 400px) {
+            input[type="text"] {
+                font-size: 1em;
+                padding: 8px;
+                max-width: 150px; /* Further constrain on very small screens */
+            }
+            .input-area {
+                gap: 5px;
+            }
+             h1 {
+                font-size: 1.2em; /* Adjust title size */
+            }
+             .score-timer {
+                font-size: 0.9em; /* Adjust score/timer size */
+            }
         }
 
 
